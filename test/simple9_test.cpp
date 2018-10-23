@@ -89,7 +89,7 @@ TEST(Simple9, single_word) {
 
 
 TEST(Simple9, fuzzy) {
-    size_t n = 1'000'000;
+    size_t n = 1000000;
     std::vector<uint8_t> buf(4 * n);
     std::vector<uint32_t> values = generate_random_vector(n, (1<<27)-1);
     simple9::encode(buf.data(), values.data(), n);
