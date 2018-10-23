@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include <utility>
 #include <iostream>
+#include <utility>
 
 namespace simple9 {
 
@@ -38,11 +38,11 @@ static void append_bits(uint32_t *out, uint32_t value, size_t bits) {
 
 inline bool fit(uint32_t value, size_t bits) { return value < (1UL << bits); }
 
-static size_t pack(uint32_t *&out, const uint32_t *&in, size_t n) {
+inline static size_t pack(uint32_t *&out, const uint32_t *&in, size_t n) {
     uint32_t v = 0;
     for (size_t k = 0; k < selectors_size; ++k) {
         size_t packed = 0;
-        *out = 0;
+        *out          = 0;
         append_bits(out, k, 4);
         auto m    = selectors[k].items < n ? selectors[k].items : n;
         auto bits = selectors[k].bits;
@@ -64,56 +64,23 @@ static size_t pack(uint32_t *&out, const uint32_t *&in, size_t n) {
     throw std::runtime_error(std::string("Value out of range.") + std::to_string(v));
 }
 
-template <size_t bits, size_t items>
-static void unpack(uint32_t *&out, const uint32_t *&in) {
-    const auto mask = (1UL << bits) - 1;
-    for (uint32_t i = 0; i < items; ++i) {
-        *out = (in[0] >> (28 - (i+1) * bits)) & mask;
+inline static void unpack(uint32_t *&out, const uint32_t *&in, size_t &value_remaining) {
+    const auto k    = *in >> 28;
+    const auto bits = details::selectors[k].bits;
+    for (size_t i = 0; i < details::selectors[k].items && i <= value_remaining; ++i) {
+        const uint32_t mask = (1UL << bits) - 1;
+        *(out++)         = (*in >> (28 - (i + 1) * bits)) & mask;
+        value_remaining -= 1;
     }
-    out += items;
     in += 1;
-}
-
-static size_t unpack(uint32_t *&out, const uint32_t *&in) {
-    auto   k        = *(in) >> 28;
-    switch (k) {
-        case 0:
-            unpack<selectors[0].bits, selectors[0].items>(out, in);
-            break;
-        case 1:
-            unpack<selectors[1].bits, selectors[1].items>(out, in);
-            break;
-        case 2:
-            unpack<selectors[2].bits, selectors[2].items>(out, in);
-            break;
-        case 3:
-            unpack<selectors[3].bits, selectors[3].items>(out, in);
-            break;
-        case 4:
-            unpack<selectors[4].bits, selectors[4].items>(out, in);
-            break;
-        case 5:
-            unpack<selectors[5].bits, selectors[5].items>(out, in);
-            break;
-        case 6:
-            unpack<selectors[6].bits, selectors[6].items>(out, in);
-            break;
-        case 7:
-            unpack<selectors[7].bits, selectors[7].items>(out, in);
-            break;
-        case 8:
-            unpack<selectors[8].bits, selectors[8].items>(out, in);
-            break;
-    }
-    return selectors[k].items;
 }
 
 } // namespace details
 
 static void encode(uint8_t *out, const uint32_t *in, size_t n) {
-    uint32_t *output = reinterpret_cast<uint32_t *>(out);
-    const uint32_t *input = in;
-    size_t value_remaining = n;
+    uint32_t *      output          = reinterpret_cast<uint32_t *>(out);
+    const uint32_t *input           = in;
+    size_t          value_remaining = n;
     while (value_remaining > 0) {
         auto encoded = details::pack(output, input, value_remaining);
         value_remaining -= encoded;
@@ -121,24 +88,11 @@ static void encode(uint8_t *out, const uint32_t *in, size_t n) {
 }
 
 static void decode(uint32_t *out, const uint8_t *in, size_t n) {
-    uint32_t *output = out;
-    const uint32_t *input = reinterpret_cast<const uint32_t *>(in);
-
-    size_t value_remaining = n;
-    while (value_remaining >= 28) {
-        auto decoded = details::unpack(output, input);
-        value_remaining -= decoded;
-    }
-    while(value_remaining > 0) {
-        auto   k        = *input >> 28;
-        auto bits = details::selectors[k].bits;
-        for (size_t i = 0; i < details::selectors[k].items && i <= value_remaining; ++i)
-        {
-            const uint32_t mask = (1UL << bits) - 1;
-            *(output++) = (*input >> (28 - (i+1) * bits)) & mask;
-            value_remaining -= 1;
-        }
-        input += 1;
+    uint32_t *      output          = out;
+    const uint32_t *input           = reinterpret_cast<const uint32_t *>(in);
+    size_t          value_remaining = n;
+    while (value_remaining > 0) {
+        details::unpack(output, input, value_remaining);
     }
 }
 } // namespace simple9
