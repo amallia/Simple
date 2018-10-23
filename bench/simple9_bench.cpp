@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-present Antonio Mallia
+ * Copyright 2018-present Antonio Mallia <me@antoniomallia.it>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
-#include <vector>
 
-#include "util.hpp"
+#include "benchmark/benchmark.h"
+#include "simple/simple9.hpp"
+#include "test/util.hpp"
 
-using ::testing::ContainerEq;
+static void encode(benchmark::State &state) {
 
-TEST(Simple, fuzzy) {
+    while (state.KeepRunning()) {
+        state.PauseTiming();
+        std::vector<uint32_t> values = generate_random_vector(state.range(0), 1 << 28);
+        state.ResumeTiming();
+        std::vector<uint8_t> buf(4 * values.size());
+        simple9::encode(buf.data(), values.data(), values.size());
+    }
 }
+BENCHMARK(encode)->Range(1 << 10, 1 << 20);
 
-
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+BENCHMARK_MAIN();
