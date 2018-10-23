@@ -4,8 +4,10 @@ foreach(BENCH_SRC ${BENCH_SOURCES})
   add_executable(${BENCH_SRC_NAME} ${BENCH_SRC})
     target_link_libraries(${BENCH_SRC_NAME}
         benchmark
+        FastPFor
     )
     target_include_directories(${BENCH_SRC_NAME} BEFORE PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+        ${BENCH_SRC_NAME} BEFORE PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/external>
     )
   add_test(${BENCH_SRC_NAME} ${BENCH_SRC_NAME})
 endforeach(BENCH_SRC)

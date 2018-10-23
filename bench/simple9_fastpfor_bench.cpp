@@ -15,7 +15,7 @@
  */
 
 #include "benchmark/benchmark.h"
-#include "simple/simple9.hpp"
+#include "FastPFor/headers/simple9.h"
 #include "test/util.hpp"
 
 static void encode(benchmark::State &state) {
@@ -24,8 +24,10 @@ static void encode(benchmark::State &state) {
         state.PauseTiming();
         std::vector<uint32_t> values = generate_random_vector(state.range(0), (1 << 28)-1);
         state.ResumeTiming();
+        FastPForLib::Simple9<false> codec;
         std::vector<uint8_t> buf(4 * values.size());
-        simple9::encode(buf.data(), values.data(), values.size());
+        size_t out_len = buf.size();
+        codec.encodeArray(values.data(), values.size(), reinterpret_cast<uint32_t *>(buf.data()), out_len);
     }
 }
 BENCHMARK(encode)->Range(1 << 10, 1 << 20);
@@ -35,10 +37,13 @@ static void decode(benchmark::State &state) {
         state.PauseTiming();
         std::vector<uint32_t> values = generate_random_vector(state.range(0), (1 << 28)-1);
         std::vector<uint8_t>  buf(4 * values.size());
-        simple9::encode(buf.data(), values.data(), values.size());
+        FastPForLib::Simple9<false> codec;
+        size_t out_len = buf.size();
+        codec.encodeArray(values.data(), values.size(), reinterpret_cast<uint32_t *>(buf.data()), out_len);
         state.ResumeTiming();
-        std::vector<uint32_t> decoded_values(values.size());
-        simple9::decode(decoded_values.data(), buf.data(), values.size());
+        std::vector<uint32_t> decoded_values(values.size()*2);
+        auto n = values.size();
+        codec.decodeArray(reinterpret_cast<uint32_t const *>(buf.data()), buf.size(), decoded_values.data(), n);
     }
 }
 BENCHMARK(decode)->Range(1<<10, 1<<20);
