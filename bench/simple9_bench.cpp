@@ -30,4 +30,39 @@ static void encode(benchmark::State &state) {
 }
 BENCHMARK(encode)->Range(1 << 10, 1 << 20);
 
+static void decode(benchmark::State &state) {
+    while (state.KeepRunning()) {
+        state.PauseTiming();
+        std::vector<uint32_t> values = generate_random_vector(state.range(0), 1 << 28);
+        std::vector<uint8_t>  buf(4 * values.size());
+        simple9::encode(buf.data(), values.data(), values.size());
+        state.ResumeTiming();
+        std::vector<uint32_t> decoded_values(values.size());
+        simple9::decode(decoded_values.data(), buf.data(), values.size());
+    }
+}
+BENCHMARK(decode)->Range(1<<10, 1<<20);
+
 BENCHMARK_MAIN();
+
+// 2018-10-23 03:39:30
+// Running ./bench/simple9_bench
+// Run on (4 X 2400 MHz CPU s)
+// CPU Caches:
+//   L1 Data 32K (x2)
+//   L1 Instruction 32K (x2)
+//   L2 Unified 262K (x2)
+//   L3 Unified 3145K (x1)
+// ------------------------------------------------------
+// Benchmark               Time           CPU Iterations
+// ------------------------------------------------------
+// encode/1024        167884 ns     165088 ns       4458
+// encode/4096        638735 ns     629346 ns       1075
+// encode/32768      4034489 ns    4019283 ns        173
+// encode/262144    31953749 ns   31899955 ns         22
+// encode/1048576  131967822 ns  131307333 ns          6
+// decode/1024         42238 ns      41892 ns      15619
+// decode/4096        186026 ns     183322 ns       4060
+// decode/32768      1802515 ns    1460434 ns        603
+// decode/262144     9763825 ns    9525571 ns         56
+// decode/1048576   41611408 ns   39585900 ns         20

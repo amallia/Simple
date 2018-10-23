@@ -39,13 +39,15 @@ static void append_bits(uint32_t *out, uint32_t value, size_t bits) {
 inline bool fit(uint32_t value, size_t bits) { return value < (1UL << bits); }
 
 static size_t pack(uint32_t *&out, const uint32_t *&in, size_t n) {
-    size_t packed = 0;
+    uint32_t v = 0;
     for (size_t k = 0; k < selectors_size; ++k) {
+        size_t packed = 0;
+        *out = 0;
         append_bits(out, k, 4);
         auto m    = selectors[k].items < n ? selectors[k].items : n;
         auto bits = selectors[k].bits;
-        for (size_t i = 0; i < m; ++i) {
-            auto v = *(in + i);
+        for (size_t i = 0; i < m && packed < n; ++i) {
+            v = *(in + i);
             if (!fit(v, bits)) {
                 break;
             }
@@ -53,19 +55,20 @@ static size_t pack(uint32_t *&out, const uint32_t *&in, size_t n) {
             packed += 1;
         }
         if (packed == m) {
+            append_bits(out, 0, 28 - m * bits);
             out += 1;
             in += packed;
-            break;
+            return packed;
         }
     }
-    return packed;
+    throw std::runtime_error(std::string("Value out of range.") + std::to_string(v));
 }
 
 template <size_t bits, size_t items>
 static void unpack(uint32_t *&out, const uint32_t *&in) {
     const auto mask = (1UL << bits) - 1;
-    for (uint32_t k = 0; k < items; ++k) {
-        *out = (in[0] >> k * bits) & mask;
+    for (uint32_t i = 0; i < items; ++i) {
+        *out = (in[0] >> (28 - (i+1) * bits)) & mask;
     }
     out += items;
     in += 1;
@@ -132,7 +135,7 @@ static void decode(uint32_t *out, const uint8_t *in, size_t n) {
         for (size_t i = 0; i < details::selectors[k].items && i <= value_remaining; ++i)
         {
             const uint32_t mask = (1UL << bits) - 1;
-            *(output++) = (*input >> (i * details::selectors[k].bits)) & mask;
+            *(output++) = (*input >> (28 - (i+1) * bits)) & mask;
             value_remaining -= 1;
         }
         input += 1;
