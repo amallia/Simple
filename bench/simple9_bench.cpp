@@ -22,7 +22,7 @@ static void encode(benchmark::State &state) {
 
     while (state.KeepRunning()) {
         state.PauseTiming();
-        std::vector<uint32_t> values = generate_random_vector(state.range(0), 1 << 28);
+        std::vector<uint32_t> values = generate_random_vector(state.range(0), (1 << 28) - 1);
         state.ResumeTiming();
         std::vector<uint8_t> buf(4 * values.size());
         simple9::encode(buf.data(), values.data(), values.size());
@@ -33,7 +33,7 @@ BENCHMARK(encode)->Range(1 << 10, 1 << 20);
 static void decode(benchmark::State &state) {
     while (state.KeepRunning()) {
         state.PauseTiming();
-        std::vector<uint32_t> values = generate_random_vector(state.range(0), 1 << 28);
+        std::vector<uint32_t> values = generate_random_vector(state.range(0), (1 << 28) - 1);
         std::vector<uint8_t>  buf(4 * values.size());
         simple9::encode(buf.data(), values.data(), values.size());
         state.ResumeTiming();
